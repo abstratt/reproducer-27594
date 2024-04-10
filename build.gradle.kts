@@ -64,3 +64,10 @@ val aggregateHtmlModules by tasks.registering(AggregateModulesTask::class) {
 
   this.moduleSpecs.addAllLater(htmlModuleSpecs)
 }
+
+  gradle.afterProject {    
+    this.tasks.withType<tasks.FormatRendererTask>().configureEach {
+      val requirement = this
+      aggregateHtmlModules.configure { this.dependsOn(requirement) }
+    }
+  }  
