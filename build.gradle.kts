@@ -13,7 +13,6 @@ dependencies {
   coolDependency(projects.spWithHtmlAndMarkdown)
 }
 
-
 val printHtmlRenderedFiles by tasks.registering {
   group = project.name
   val htmlFiles = coolDependenciesHtml.variantRenderedFiles.incomingFiles
@@ -65,9 +64,35 @@ val aggregateHtmlModules by tasks.registering(AggregateModulesTask::class) {
   this.moduleSpecs.addAllLater(htmlModuleSpecs)
 }
 
+if (hasProperty("addDeps")) {
   gradle.afterProject {    
-    this.tasks.withType<tasks.FormatRendererTask>().configureEach {
-      val requirement = this
-      aggregateHtmlModules.configure { this.dependsOn(requirement) }
+      this.tasks.withType<tasks.FormatRendererTask>().configureEach {
+          val requirement = this
+          aggregateHtmlModules.configure { this.dependsOn(requirement) }
+      }
+  }
+}
+
+fun Task.isCustom(): Boolean =
+    this::class.qualifiedName!!.startsWith("tasks.")
+
+val taskDependenciesReport = StringBuilder()
+afterEvaluate {
+  getAllTasks(true).forEach { (project, tasks) ->
+    taskDependenciesReport.appendLine("${project}")
+    tasks.filter { it.isCustom() }.forEach { task ->
+      taskDependenciesReport.appendLine("        ${task}")
+      task.taskDependencies.getDependencies(task).forEach { dep ->
+        taskDependenciesReport.appendLine("            ${dep}")
+      }
     }
-  }  
+  }
+}
+
+val showTasks by tasks.registering {
+  val taskDependenciesReport = taskDependenciesReport
+  doLast {
+    println(taskDependenciesReport)
+  }
+}
+
